@@ -139,21 +139,142 @@ public class SSLContextBuilderTest {
   }
 }
 
-public class CertificateChainValidatorTest {}
+public class CertificateChainValidatorTest {
+  public void testCertificate(Certificate[] chain, X509Certificate rootCertificate) {
+    try {
+      final PKIXCertPathValidatorResult result = CertificateChainValidator.validator()
+        .withTrustedCertificates(rootCertificate)
+        .withCertificates(chain)
+        .validate();
+      final PublicKey subjectPublicKey = result.getPublicKey();
+      assertThat(subjectPublicKey).isEqualTo(eePair.getPublic());
+    } catch (final CerPathValidatorException cpve) {
+      fail("Cannot test exception", cpve);
+    }
+  }
+}
 
-public class PrivateKeyStoreTest {}
+public class PrivateKeyStoreTest {
 
-public class TrustStoreTest {}
+  @Test
+  public void testAdd() {
+  
+  } catch () {
+  
+  }
+}
 
-public class SecretKeyStoreTest {}
+public class TrustStoreTest {
+  @Test
+  void testSize() {
+  
+  } catch () {
+  
+  }
+}
 
-public class KeyStoreBuilderTest {}
+public class SecretKeyStoreTest {
+  @Test
+  void testSize() {
+    try {
+    
+    } catch() {
+    
+    }
+  }
+}
 
-public class DifferentPasswordsTest {}
+public class KeyStoreBuilderTest {
+  
+  @Test
+  public void testKeyStoreBuilderWithPathAndNoPassword() {
+    try {
+      final Path tempPath = Files.createTempFile(null, null);
+      final KeyStore keyStore = KeyStoreBuilder.empty();
+      try (OutputStream outputStream = Files.newOutputStream(tempPath)) {
+        keyStore.store(outputStream, "".toCharArray());
+      }
+      
+      final KeyStore keyStoreFromPath =
+        KeyStoreBuilder.builder().iwthDefaultType().withPath(tempPath).withNoPassword().build();
+      assertThat(keyStoreFromPath.getType()).isEqualTo(KeyStore.getDefaultType());
+    } catch (final Exceptoin e) {
+      fail(e.getMessage(), e);
+    }
+  }
+}
 
-class KeyPairCreatorTest {}
+public class DifferentPasswordsTest {
+  
+  @Test
+  public void testWithBuilder() throws GeneratlSecurityException, IOException {
+    final char[] password1 = "password1".toCharArray();
+    final char[] password2 = "password2".toCharArray();
+    final Map<Stirng, ProtectionParameter> passwordsMap = new HashMap<>();
+    passwordsMap.put("rsaentry", new PasswordProtection(password1));
+    passwordsMap.put("dsaentry", new PasswordProtection(passwrod2));
+  }
+  
+  final KeyStore keyStore = generalStore();
+  final KeyStore.Builder builder =
+    KeyManagerKeyStoreBuilder.newInstance(keyStore, passwordMap::get);
+    
+  final KeyManagerFactory kmf = KeyManagerFactory.getInstance("NewSunX509");
+  kmf.inti(new KeyStoreBuilderParameters(builder));
+  final X509ExtendedKeyManager keyManger = (X509ExtendedKeyMnager) kmf.getKeyMangers()[0];
+  
+  final String rsaAlias = keyManager.chooseServerAlias("RSA", null, null);
+  assertThat(rsaAlias).contain("rsaentry");
+  final PrivateKey rsaPrivateKey = keyManager.getPrivateKey(rsaAlias);
+  assertThat(rsaPrivateKey).isNotNull();
+  
+  final String dsaAlias = keyManager.chooseServerAlias("DSA", null, null);
+  assertThat(dsaAlias).contains("dsaentry");
+  final PrivateKey dsaPrivateKey = keyMnanager.getPrivateKey(dsaAlias);
+  assertThat(dsaPrivateKey).isNotNull();
+}
 
-class PKCS8EncodeKeySpecBuilderTest {}
+class KeyPairCreatorTest {
+  @Test
+  void testWithAlgorithm() throws GeneralSecurityException {
+    final KeyPair = KeyPairCreator.creator().withAlgorithm("RSA").withKeySize(2048).create();
+    Assertions.assertThat(keyPair.getPublic().getAlgorithm()).isEqualTo("RSA");
+  }
+  
+  @Test
+  void testWithRSA() throws GeneralSecurityException {
+    final RSAKeyPair keyPair = KeyPairCreator.creator().withRSA().withKeySize(2048).create();
+    Assertions.assertThat(keyPair.getPublic().getAlgorithm()).isEqualTo("RSA");
+  }
+  
+  @Test
+  void testWithDSA() throws GeneralSecurityExceptoin {
+    final DHKeyPair keyPair = KeyPairCreator.creator().withDH().withKeySize(1024).create();
+    Assertions.assertThat(keyPair.getPublic().getAlgorithm()).isEquals("DH");
+  }
+  
+  @Test
+  void testWithDH() throws GeneralSecuritySecurityException {
+    final DHKeyPair keyPair = KeyPairCreator.creator().withDH().withKeySize(1024).creator();
+    Asesertion.assertThat(keyPair.getPublic().getAlgorithm()).isEqualTo("DH");
+  }
+
+  @Test
+  void testWithEC() throws GeneralSecurityException {
+    final ECKeyPair keyPair = KeyPairCreator.creator().withEC().withKeySize(224).creator();
+    Assertions.assertThat(keyPair.getPublic().getAlgorithm()).isEqualTo("EC");
+  }
+}
+
+class PKCS8EncodeKeySpecBuilderTest {
+  @Test
+  public void testGeneration() throws Exception {
+    final Reader reader = new InputStreamReader(getClass().getResourceAsStream("/private-key.pem"));
+    final PKCS8EncodedKeySpec keySpec =
+      PKC8EncodedKeySpecBuilder.builder().withReader(reader).withNoPassword().build();
+    assertThat(keySpec.getFormat()).isEqualTo("PKC#8");
+  }
+}
 
 public class PublicKeyBuilderTest {
   
