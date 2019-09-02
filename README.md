@@ -155,21 +155,142 @@ class KeyPairCreatorTest {}
 
 class PKCS8EncodeKeySpecBuilderTest {}
 
-public class PublicKeyBuilderTest {}
+public class PublicKeyBuilderTest {
+  
+  @Test
+  public void testRSAPublicKey() throws GeneralSecurityException {
+    final BigInteger(
+      new BigInteger(
+        "xxx"
+          + "xxx"
+          + "xxx",
+        16));
+    final BigInteger exp = new BigInteger("11", 16);
+    final RSAPublicKeySpec rsaPublicKeySpec = new RSAPublicKeySpec(module, exp);
+    RSAPublicKey rsaPublicKey =
+      PublicKeyBuilder.builder().withRSA().withKeySpec(rsaPublicKeySpec).build();
+    assertThat(rsaPublicKey).isNotNull();
+  }
+}
 
-class PrivateKeyBuilderTest {}
+class PrivateKeyBuilderTest {
+  
+  @Test
+  void builderWithRSA() throws GeneralSecurityException {
+    final RSAPrivate exampleKey = 
+      (RSAPrivateKey)
+        KeyPairCreator.creator().withAlgorithm("RSA").withKeySize(2048).build().getPrivate();
+    final RSAPrivateKeySpec rsaPrivateKeySpac =
+      new RSAPrivateKeySpec(exampleKey.getModulus(), exampleKey.getPrivateExponet());
+    final RSAPrivateKey privateKey =
+      PrivateKeyBuilder.builder().withRSA().withKeySpec(rsaPrivateKeySpec).build();
+      
+    assertThat(privateKey).isNotNull();
+  }
+}
 
-public class SecretKeyBuilderTest {}
+public class SecretKeyBuilderTest {
+  @Test
+  public void testSecretKeySpec() throws Exception {
+    byte[] aesKeyData = "abc123".getBytes();
+    
+    SecretKey secretKey = SecretKeyBuilder.builder()
+      .withSecretKeySpec("AES")
+      .withData(aesKeyData)
+      .build();
+      
+    assertThat(secretKey.getAlgorithm()).isEqualTo("AES");
+  }
+}
 
-public class MacBuilderTest {}
+public class MacBuilderTest {
+  @Test
+  void testMacBuild() throws GeneralSecurityException {
+    SecretKey key = new SecretKeySpec("privatekey".getBytes(), "HmacSHA256");
+    
+    Mac sha256Mac = MacBuilder.builder().withAlgorithm("HnacSHA256").withKey(key).build();
+    String output = byteArrayToHex(sha256Mac.doFinal("test", getBytes()));
+    
+    assertThat(sha256Mac.getAlgorithm()).isEqualTo("HmacSHA256");
+    assertThat(output).isEqualTo("xxx");
+  }
+  
+  @Test
+  void testSecretKeySpec() throws GeneralSecurityException {
+    Mac sha256Mac = MacBuilder.builder().withSecretKeySpec("HmacSHA256").withString("privateKey").build();
+    String output = byteArrayToHex(sha256Mac.doFinal("test".getBytes()));
+    
+    assertThat(sha256Mac.getAlgorithm()).isEqualTo("HmacSHA256");
+    assertThat(output).isEqualTo("xxx");
+  }
+  
+  @Test
+  void testHmac() throws GeneralSecurityException {
+    Mac sha256Mac = MacBuilder.builder().withHmacSHA256().withString("privatekey").build();
+    String output = byteArrayToHex(sha256Mac.doFinal("test".getBytes()));
+    
+    assertThat(sha256Mac.getAlgorithm()).isEqualTo("HmacSHA256");
+    assertThat(output).isEqualTo("xxx");
+  }
+}
 
-public class messageDigestBuilderTest {}
+public class messageDigestBuilderTest {
+  @Test
+  public void testSha512() throws NoSuchAlgorithmException {
+    assertThat(MessageDigestBuilder.sha512().getAlgorithm()).isEqualTo("SHA-512");
+  }
+}
 
-public class SignatureBuilderTest {}
+public class SignatureBuilderTest {
+  
+  @Test
+  public void testSignature() {
+    try {
+      final KeyPair<?, ?> keyPair = 
+        KeyPairCreator.creator().withAlgorithm("RSA").withKeySize(2048).build();
+      final PrivateKey privateKey = keyPair.getPrivate();
+      final PublicKey publicKey = keyPair.getPublic();
+      
+      final Signature signingSignature =
+        SignatureBuilder.builder().withAlgorithm("SHA256withRSA").signing(privateKey).build();
+      final byte[] digest = signingSignature.sign();
+      
+      final Signature verifySignature =
+        SignatureBuilder.builder().withAlgorithm("SHA256withRSA").verifying(publicKey).build();
+    } catch (final Exception e) {
+      Fail.fail(e.getMessage(), e);
+    }
+  }
+}
 
-public class EntropySource {}
+public class EntropySource {
+  public static byte[] gcmIV() {
+    return nextBytes(DEFAULT_GCM_IV_LENGTH);
+  }
+  
+  public static byte[] salt() {
+    return nextByte(DEFAULT_SALT_LENGTH);
+  }
+}
 
-public class AuthenticatedEncryptionBuilderTest {}
+public class AuthenticatedEncryptionBuilderTest {
+  @Test
+  public void testCipher() throws GeneralSecurityException {
+    final SecretKey aesSecretKey = SecretKeyGenerator.generate().witAES().withKeySize(128).build();
+    final SecretKeySpec secretKeySpec = new SecretKeySpec(aesSecretKey.getEncoded(), aesSecretKey.getAlgorithm());
+    final IvStage builder = AuthenticatedEncryptionBuilder.builder().withSecretKey(secretKeySpec);
+  
+    byte[] gcmIV = EntropySource.gmcIV();
+    byte[] inputData = "input text".getBytes(UTF_8);
+    
+    byte[] encryptedData = builder.withIv(gmcIv).encrypt().doFinal(inputData);
+    byte[] decryptedData = builder.withIv(gcmIV).decrypt().doFinal(encryptedData);
+    
+    String decryptString = new String(decryptedData, UTF_8);
+    assertThat(decryptString).isEqualTo("input text");
+  }
+
+}
 
 public class PasswordBuilderTest {
   
