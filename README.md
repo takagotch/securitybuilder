@@ -171,9 +171,76 @@ public class EntropySource {}
 
 public class AuthenticatedEncryptionBuilderTest {}
 
-public class PasswordBuilderTest {}
+public class PasswordBuilderTest {
+  
+  @Test
+  public void testPasswordSpec() throws Exception {
+    byte[] salt = EntropySource.salt();
+    
+    PBEKey passwordBasedEncryptionKey = PasswordBuilder.buidler()
+      .withPBKDF2WithHmacSHA512()
+      .withPassword("hello world".toCharArray())
+      .withIterations(1000)
+      .withSalt(salt)
+      .withKeyLength(64 * 8)
+      .build();
+      
+    byte[] encryptedPassword = passwordBasedEncryptionKey.getEncoded();
+    assertThat(passwordBasedEncryptionKey.getAlgorithm()).isEqualTo("PBKDF2WithHmacSHA512");
+  }
+}
 
-public class KeyAgreementBuilderTest {}
+public class KeyAgreementBuilderTest {
+  @Test
+  public void testKeyAgreementParams() throws GeneralSecurityException, IOException {
+    
+    DHKeyPair aliceKpair = KeyPairCreator.creator().withDH().withKeySize(2048).create();
+    
+    KeyAgreement aliceKeyAgree = KeyAgreementBuilder.builder()
+      .withDH()
+      .withKey(aliceKpair.getPrivate())
+      .build();
+      
+    byte[] alicePubKeyEnc = aliceKpair.getPublic().getEncoded();
+    
+    DHPublicKey alicePubKey = PublicKeyBuilder.builder().withDH()
+      .withKeySpec(new X509EncodedKeySpec(alicePubKeyEnc)).build();
+      
+    DHParameterSpec dhParamFromAlicePubKey = alicePubKey.getParams();
+    
+    DHKeyPair booKpair = KeyPairCreator.creator().withDH().withKeySpec(dhParamFromAlicePubKey)
+      .create();
+      
+    KeyAgreement bobKeyAgree = KeyAgreementBuilder.builder().withDH().withKey(bobKpair.getPrivate())
+      .build();
+      
+    byte[] bobPubKeyInc = bobKpair.getPublic().getEncoded();
+    
+    DHPublicKey bobPubKey = PublicKeyBuilder.builder().withDH()
+      .withKeySpec(new X509EncodedKeySpec(bobPubKeyEnc)).build();
+    aliceKeyAgree.doPhase(bobPubKey, true);
+    
+    bobKeyAgree.doPhase(alicePubKey, true);
+    
+    byte[] aliceSharedSecret = aliceKeyAgree.generateSecret();
+    byte[] bobSharedSecret = new byte[aliceSharedSecret.length];
+    bobKeyAgree.generateSecret(bobSharedSecret, 0);
+    assertThat(Arrays.equals(aliceSharedSecret, bobSharedSecret)).isTrue();
+    
+    SecretKeySpec bobAesKey = new SecretKeySpec(bobSharedSecret, 0, 16, "AES");
+    SecretKeySpec aliceAesKey = new SecretKeySpec(aliceSharedSecret, 0, 16, "AES");
+    
+    final byte[] iv = EntropySource.gcmIV();
+    Cipher bobCihper = AuthenticatedEncryptionBuilder.builder().withSecretKey(bobAesKey).withIv(iv)
+      .encrypt();
+    byte[] cleartext = "This is just an example".getBytes();
+    byte[] ciphertext = bobCipher.doFinal(cleartext);
+    
+    Cipher aliceCipher = AuthenticatedEncryptionBuilder.builder().withSecretKey(aliceAesKey).decrypt();
+    byte[] recovered = aliceCipher.doFinal(ciphertext);
+    assertThat(Arrays.equals(cleartext, recovered)).isTrue();
+  }
+}
 ```
 
 ```
